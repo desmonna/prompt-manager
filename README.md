@@ -50,6 +50,10 @@
 4. 进入项目设置，点击`Database`，点击`Create new database`，创建数据库
 5. 创建数据表
 ```
+     -- 修复后的数据库表结构
+     -- 删除现有表（如果存在）
+     DROP TABLE IF EXISTS prompts;
+     DROP TABLE IF EXISTS tags;
      -- 创建 tags 表
      CREATE TABLE tags (
          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
