@@ -29,21 +29,46 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-  const { userId } = await auth()
+  try {
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    const { userId } = await auth();
 
-  const data = await request.json();
-  // 使用authToken作为user_id
-  data.user_id = userId;
+    if (!userId) {
+      return NextResponse.json({ error: '用户未认证' }, { status: 401 });
+    }
 
-  const { data: newPrompt, error } = await supabase
-    .from('prompts')
-    .insert([data])
-    .select();
+    const data = await request.json();
+    
+    // 验证必需字段
+    if (!data.title || !data.content) {
+      return NextResponse.json({ error: '标题和内容为必填项' }, { status: 400 });
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // 准备插入数据
+    const insertData = {
+      title: data.title,
+      content: data.content,
+      description: data.description || '',
+      user_id: userId,
+      version: data.version || '1.0',
+      tags: data.tags || '',
+      cover_img: data.cover_img || '',
+      is_public: data.is_public || false
+    };
+
+    const { data: newPrompt, error } = await supabase
+      .from('prompts')
+      .insert([insertData])
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(newPrompt[0]);
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 });
   }
-
-  return NextResponse.json(newPrompt[0]);
 } 
