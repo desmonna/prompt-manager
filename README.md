@@ -50,10 +50,6 @@
    - 目仪表盘的左侧菜单中，找到并点击 `SQL Editor`，点击 `New query`。
    - 将下面的 SQL 代码复制并粘贴进去，然后点击 `RUN` 来创建 `prompts` 和 `tags` 这两个表。
 ```
-     -- 修复后的数据库表结构
-     -- 删除现有表（如果存在）
-     DROP TABLE IF EXISTS prompts;
-     DROP TABLE IF EXISTS tags;
      -- 创建 tags 表
      CREATE TABLE tags (
          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -94,7 +90,86 @@
 ```
 3. 创建`bucket`:
    - 在左侧菜单中，点击 `Storage`。
-   - 点击 `Create bucket`，创建一个新的存储桶，用于存放提示词的封面图片。你可以随意命名，例如 prompt-covers。
+   - 点击 `Create bucket`，创建一个新的存储桶，用于存放提示词的封面图片。
+```
+-- Supabase Storage Bucket设置脚本
+-- 解决图片上传和存储问题
+
+-- ===============================
+-- 1. 创建Storage Bucket
+-- ===============================
+
+-- 创建prompt-manager bucket（如果不存在）
+INSERT INTO storage.buckets (id, name, public, avif_autodetection, file_size_limit, allowed_mime_types)
+VALUES (
+    'prompt-manager',
+    'prompt-manager', 
+    true, 
+    false,
+    52428800, -- 50MB限制
+    ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']::text[]
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- ===============================
+-- 2. 设置Storage权限策略
+-- ===============================
+
+-- 允许认证用户上传文件
+CREATE POLICY "Allow authenticated users to upload images" ON storage.objects
+    FOR INSERT 
+    TO authenticated
+    WITH CHECK (bucket_id = 'prompt-manager');
+
+-- 允许认证用户查看自己上传的文件
+CREATE POLICY "Allow users to view own uploaded images" ON storage.objects
+    FOR SELECT 
+    TO authenticated
+    USING (bucket_id = 'prompt-manager' AND auth.uid()::text = owner);
+
+-- 允许所有人查看公开的图片（用于分享）
+CREATE POLICY "Allow public access to images" ON storage.objects
+    FOR SELECT 
+    TO public
+    USING (bucket_id = 'prompt-manager');
+
+-- 允许认证用户更新自己的文件
+CREATE POLICY "Allow users to update own images" ON storage.objects
+    FOR UPDATE 
+    TO authenticated
+    USING (bucket_id = 'prompt-manager' AND auth.uid()::text = owner)
+    WITH CHECK (bucket_id = 'prompt-manager' AND auth.uid()::text = owner);
+
+-- 允许认证用户删除自己的文件
+CREATE POLICY "Allow users to delete own images" ON storage.objects
+    FOR DELETE 
+    TO authenticated
+    USING (bucket_id = 'prompt-manager' AND auth.uid()::text = owner);
+
+-- ===============================
+-- 3. 验证bucket设置
+-- ===============================
+
+-- 检查bucket是否创建成功
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'prompt-manager') THEN
+        RAISE EXCEPTION 'prompt-manager bucket未创建成功';
+    END IF;
+    
+    RAISE NOTICE '✓ prompt-manager bucket已成功创建';
+END $$;
+
+-- 显示bucket配置信息
+SELECT 
+    id,
+    name,
+    public,
+    file_size_limit,
+    allowed_mime_types
+FROM storage.buckets 
+WHERE id = 'prompt-manager';
+```
 4. 左侧菜单底部，点击 `Project Settings` -> `API`
    - 在这里你会找到两个关键信息，请复制并填入vercel的环境变量中：
    - `Project URL (SUPABASE_URL)`
@@ -162,6 +237,3 @@
    - Client Secret: 将你从 GitHub 复制的 Client Secret 粘贴到这里。
    - Scopes (授权范围): 保持默认的 user:email 就好。这代表你请求GitHub提供用户的邮箱地址，这是登录所必需的。
    - 保存更改：点击右下角的 "Save" 按钮。
-
-##### supbase的security和warning
-在Supabase SQL编辑器中运行supabase-security-fixes.sql即可修复所有安全问题。
