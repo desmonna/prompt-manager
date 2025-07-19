@@ -162,3 +162,6 @@
    - Client Secret: 将你从 GitHub 复制的 Client Secret 粘贴到这里。
    - Scopes (授权范围): 保持默认的 user:email 就好。这代表你请求GitHub提供用户的邮箱地址，这是登录所必需的。
    - 保存更改：点击右下角的 "Save" 按钮。
+
+##### supbase的security和warning
+在Supabase SQL编辑器中运行supabase-security-fixes.sql即可修复所有安全问题。
