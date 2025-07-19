@@ -50,10 +50,6 @@
    - 目仪表盘的左侧菜单中，找到并点击 `SQL Editor`，点击 `New query`。
    - 将下面的 SQL 代码复制并粘贴进去，然后点击 `RUN` 来创建 `prompts` 和 `tags` 这两个表。
 ```
-     -- 修复后的数据库表结构
-     -- 删除现有表（如果存在）
-     DROP TABLE IF EXISTS prompts;
-     DROP TABLE IF EXISTS tags;
      -- 创建 tags 表
      CREATE TABLE tags (
          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -241,6 +237,3 @@ WHERE id = 'prompt-manager';
    - Client Secret: 将你从 GitHub 复制的 Client Secret 粘贴到这里。
    - Scopes (授权范围): 保持默认的 user:email 就好。这代表你请求GitHub提供用户的邮箱地址，这是登录所必需的。
    - 保存更改：点击右下角的 "Save" 按钮。
-
-##### supbase的security和warning
-在Supabase SQL编辑器中运行supabase-security-fixes.sql即可修复所有安全问题。
