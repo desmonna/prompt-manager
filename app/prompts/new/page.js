@@ -64,13 +64,16 @@ export default function NewPrompt() {
         body: JSON.stringify(prompt),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error('Failed to create prompt');
+        throw new Error(data.error || 'Failed to create prompt');
       }
 
       router.push('/prompts');
     } catch (error) {
       console.error('Error creating prompt:', error);
+      alert('创建失败: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -101,15 +104,21 @@ export default function NewPrompt() {
           body: JSON.stringify({ name: inputValue }),
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
           const newOption = { value: inputValue, label: inputValue };
-          setTagOptions([...tagOptions, newOption]);
+          setTagOptions(prev => [...prev, newOption]);
           
           const newTags = prompt.tags ? `${prompt.tags},${inputValue}` : inputValue;
           setPrompt({ ...prompt, tags: newTags });
+        } else {
+          console.error('Error creating tag:', data.error);
+          alert('创建标签失败: ' + data.error);
         }
       } catch (error) {
         console.error('Error creating new tag:', error);
+        alert('创建标签失败: ' + error.message);
       }
     }
   };
