@@ -50,26 +50,43 @@
 4. 进入项目设置，点击`Database`，点击`Create new database`，创建数据库
 5. 创建数据表
 ```
--- 创建 prompts 表
-CREATE TABLE prompts (
-    id UUID PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    description TEXT,
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
-    is_public BOOLEAN,
-    user_id TEXT,
-    version TEXT,
-    tags TEXT,
-    cover_img TEXT
-);
+     -- 创建 tags 表
+     CREATE TABLE tags (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         name TEXT NOT NULL UNIQUE,
+         created_at TIMESTAMPTZ DEFAULT NOW()
+     );
 
--- 创建 tags 表
-CREATE TABLE tags (
-    id UUID PRIMARY KEY,
-    name TEXT NOT NULL
-);
+     -- 创建 prompts 表  
+     CREATE TABLE prompts (
+         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+         title TEXT NOT NULL,
+         content TEXT NOT NULL,
+         description TEXT,
+         created_at TIMESTAMPTZ DEFAULT NOW(),
+         updated_at TIMESTAMPTZ DEFAULT NOW(),
+         is_public BOOLEAN DEFAULT false,
+         user_id TEXT NOT NULL,
+         version TEXT DEFAULT '1.0',
+         tags TEXT,
+         cover_img TEXT
+     );
+
+     -- 创建更新触发器
+     CREATE OR REPLACE FUNCTION update_updated_at_column()
+     RETURNS TRIGGER AS $$
+     BEGIN
+         NEW.updated_at = NOW();
+         RETURN NEW;
+     END;
+     $$ language 'plpgsql';
+
+     CREATE TRIGGER update_prompts_updated_at BEFORE UPDATE
+         ON prompts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+     -- 插入一些示例标签
+     INSERT INTO tags (name) VALUES
+     ('AI助手'), ('编程'), ('写作'), ('翻译'), ('分析');
 ```
 6. 创建bucket，用于存储封面图片
 进入项目设置，点击`Storage`，点击`Create bucket`，创建bucket
