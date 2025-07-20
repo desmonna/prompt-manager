@@ -18,6 +18,7 @@ export default function EditPrompt({ params }) {
   const id = unwrappedParams.id;
   const [prompt, setPrompt] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [tagOptions, setTagOptions] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -39,9 +40,19 @@ export default function EditPrompt({ params }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // 防止在图片上传过程中提交
+    if (isUploading) {
+      alert('请等待图片上传完成');
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
+      console.log('Updating prompt data:', prompt);
+      console.log('Cover image URL:', prompt.cover_img);
+      
       const response = await fetch(`/api/prompts/${id}`, {
         method: 'POST',
         headers: {
@@ -51,10 +62,15 @@ export default function EditPrompt({ params }) {
       });
 
       if (response.ok) {
+        console.log('Prompt updated successfully');
         router.push(`/prompts/${id}`);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update prompt');
       }
     } catch (error) {
       console.error('Error updating prompt:', error);
+      alert('更新失败: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,10 +79,12 @@ export default function EditPrompt({ params }) {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      setIsUploading(true);
       const formData = new FormData();
       formData.append('image', file);
 
       try {
+        console.log('Starting image upload...');
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
@@ -83,7 +101,8 @@ export default function EditPrompt({ params }) {
         }
         
         if (data.url) {
-          setPrompt({ ...prompt, cover_img: data.url });
+          // 使用函数式更新确保状态正确
+          setPrompt(prevPrompt => ({ ...prevPrompt, cover_img: data.url }));
           console.log('Image uploaded successfully:', data.url);
         } else {
           throw new Error('No URL returned from upload');
@@ -91,6 +110,8 @@ export default function EditPrompt({ params }) {
       } catch (error) {
         console.error('Error uploading image:', error);
         alert('图片上传失败: ' + error.message);
+      } finally {
+        setIsUploading(false);
       }
     }
   };
@@ -213,13 +234,17 @@ export default function EditPrompt({ params }) {
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
+                  disabled={isUploading}
                 />
+                {isUploading && (
+                  <span className="text-sm text-muted-foreground">上传中...</span>
+                )}
               </div>
             </div>
 
             <div className="flex gap-4">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? '保存中...' : '保存'}
+              <Button type="submit" disabled={isSubmitting || isUploading}>
+                {isSubmitting ? '保存中...' : isUploading ? '等待上传...' : '保存'}
               </Button>
               <Button
                 type="button"
