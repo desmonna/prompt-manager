@@ -1,14 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { supabaseAnon } from '../../../lib/supabase';
 
 export async function GET() {
   try {
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
-    );
-
-    const { data: tags, error } = await supabase
+    const { data: tags, error } = await supabaseAnon
       .from('tags')
       .select('name');
 
@@ -31,13 +26,8 @@ export async function POST(request) {
       return NextResponse.json({ error: '标签名称不能为空' }, { status: 400 });
     }
 
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
-    );
-
     // 检查标签是否已存在
-    const { data: existingTag } = await supabase
+    const { data: existingTag } = await supabaseAnon
       .from('tags')
       .select('id, name')
       .eq('name', name.trim())
@@ -48,7 +38,7 @@ export async function POST(request) {
     }
 
     // 创建新标签
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAnon
       .from('tags')
       .insert([{ name: name.trim() }])
       .select();

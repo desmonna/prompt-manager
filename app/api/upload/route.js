@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// 初始化 Supabase 客户端
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY,
- 
-);
+import { auth } from '@clerk/nextjs/server';
+import { createUsersupabaseClient } from '../../../lib/supabase';
 
 export async function POST(request) {
   try {
+    // 获取用户认证信息
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = createUsersupabaseClient(userId);
+
     const formData = await request.formData();
     const file = formData.get('image');
     
@@ -19,12 +22,12 @@ export async function POST(request) {
 
     // 获取文件扩展名
     const fileExtension = file.name.split('.').pop();
-    // 只使用时间戳生成文件名
-    const fileName = `${Date.now()}.${fileExtension}`;
+    // 使用用户ID和时间戳生成文件路径，符合RLS策略
+    const fileName = `${userId}/${Date.now()}.${fileExtension}`;
     
-    // 上传到 Supabase Storage
+    // 上传到 supabase Storage (使用prompt-covers bucket)
     const { data, error } = await supabase.storage
-      .from('prompt-manager')
+      .from('prompt-covers')
       .upload(fileName, file);
 
     if (error) {
@@ -33,7 +36,7 @@ export async function POST(request) {
 
     // 获取文件的公共URL
     const { data: { publicUrl } } = supabase.storage
-      .from('prompt-manager')
+      .from('prompt-covers')
       .getPublicUrl(fileName);
     
     return NextResponse.json({ url: publicUrl });

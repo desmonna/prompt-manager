@@ -1,10 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { createUserSupabaseClient } from '../../../lib/supabase';
 
 export async function GET(request) {
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-  const { userId } = await auth()
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  const supabase = createUserSupabaseClient(userId);
   
   // 从 URL 中获取 tag 参数
   const { searchParams } = new URL(request.url);
@@ -30,12 +35,13 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
     const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: '用户未认证' }, { status: 401 });
     }
+
+    const supabase = createUserSupabaseClient(userId);
 
     const data = await request.json();
     
