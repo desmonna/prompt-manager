@@ -62,6 +62,8 @@ export async function POST(request) {
       is_public: data.is_public || false
     };
 
+    console.log('Inserting prompt with cover_img:', data.cover_img); // 调试日志
+
     const { data: newPrompt, error } = await supabase
       .from('prompts')
       .insert([insertData])
@@ -71,6 +73,8 @@ export async function POST(request) {
       console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    console.log('Prompt created successfully with cover_img:', newPrompt[0]?.cover_img); // 调试日志
 
     return NextResponse.json(newPrompt[0]);
   } catch (error) {
