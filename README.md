@@ -50,125 +50,174 @@
    - 目仪表盘的左侧菜单中，找到并点击 `SQL Editor`，点击 `New query`。
    - 将下面的 SQL 代码复制并粘贴进去，然后点击 `RUN` 来创建 `prompts` 和 `tags` 这两个表。
 ```
-     -- 创建 tags 表
-     CREATE TABLE tags (
-         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-         name TEXT NOT NULL UNIQUE,
-         created_at TIMESTAMPTZ DEFAULT NOW()
-     );
+  -- 1. 创建原有表结构
+  CREATE TABLE tags (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+  );
 
-     -- 创建 prompts 表  
-     CREATE TABLE prompts (
-         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-         title TEXT NOT NULL,
-         content TEXT NOT NULL,
-         description TEXT,
-         created_at TIMESTAMPTZ DEFAULT NOW(),
-         updated_at TIMESTAMPTZ DEFAULT NOW(),
-         is_public BOOLEAN DEFAULT false,
-         user_id TEXT NOT NULL,
-         version TEXT DEFAULT '1.0',
-         tags TEXT,
-         cover_img TEXT
-     );
+  CREATE TABLE prompts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      description TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      is_public BOOLEAN DEFAULT false,
+      user_id TEXT NOT NULL,
+      version TEXT DEFAULT '1.0',
+      tags TEXT,
+      cover_img TEXT
+  );
 
-     -- 创建更新触发器
-     CREATE OR REPLACE FUNCTION update_updated_at_column()
-     RETURNS TRIGGER AS $$
-     BEGIN
-         NEW.updated_at = NOW();
-         RETURN NEW;
-     END;
-     $$ language 'plpgsql';
+  -- 创建更新触发器
+  CREATE OR REPLACE FUNCTION update_updated_at_column()
+  RETURNS TRIGGER AS $$
+  BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+  END;
+  $$ language 'plpgsql';
 
-     CREATE TRIGGER update_prompts_updated_at BEFORE UPDATE
-         ON prompts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  CREATE TRIGGER update_prompts_updated_at BEFORE UPDATE
+      ON prompts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-     -- 插入一些示例标签
-     INSERT INTO tags (name) VALUES
-     ('AI助手'), ('编程'), ('写作'), ('翻译'), ('分析');
+  -- 2. 添加性能优化索引
+  CREATE INDEX idx_prompts_user_id ON prompts(user_id);
+  CREATE INDEX idx_prompts_is_public ON prompts(is_public);
+  CREATE INDEX idx_prompts_created_at ON prompts(created_at DESC);
+  CREATE INDEX idx_tags_name ON tags(name);
+
+  -- 3. 启用RLS (Row Level Security)
+  ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE prompts ENABLE ROW LEVEL SECURITY;
+
+  -- 4. Tags表RLS策略
+  -- 所有人可以读取标签
+  CREATE POLICY "tags_select_policy" ON tags
+      FOR SELECT USING (true);
+
+  -- 认证用户可以创建标签
+  CREATE POLICY "tags_insert_policy" ON tags
+      FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+  -- 只有管理员可以更新/删除标签
+  CREATE POLICY "tags_update_policy" ON tags
+      FOR UPDATE USING (auth.jwt() ->> 'role' = 'admin');
+
+  CREATE POLICY "tags_delete_policy" ON tags
+      FOR DELETE USING (auth.jwt() ->> 'role' = 'admin');
+
+  -- 5. Prompts表RLS策略
+  -- 查看策略：用户可以看到自己的所有prompts + 其他用户的公开prompts
+  CREATE POLICY "prompts_select_policy" ON prompts
+      FOR SELECT USING (
+          user_id = auth.uid()::text OR is_public = true
+      );
+
+  -- 插入策略：认证用户可以创建prompts，user_id自动设置
+  CREATE POLICY "prompts_insert_policy" ON prompts
+      FOR INSERT WITH CHECK (
+          auth.role() = 'authenticated' AND user_id = auth.uid()::text
+      );
+
+  -- 更新策略：只能更新自己的prompts
+  CREATE POLICY "prompts_update_policy" ON prompts
+      FOR UPDATE USING (user_id = auth.uid()::text);
+
+  -- 删除策略：只能删除自己的prompts
+  CREATE POLICY "prompts_delete_policy" ON prompts
+      FOR DELETE USING (user_id = auth.uid()::text);
+  -- 插入示例数据
+  INSERT INTO tags (name) VALUES
+      ('AI助手'), ('编程'), ('写作'), ('翻译'), ('分析');     
 ```
 3. 创建`bucket`:
    - 在左侧菜单中，点击 `Storage`。
    - 点击 `Create bucket`，创建一个新的存储桶，用于存放提示词的封面图片。
 ```
--- Supabase Storage Bucket设置脚本
--- 解决图片上传和存储问题
+  -- 6. 创建Storage Bucket（需要在Supabase Dashboard中执行或使用客户端代码）
+  -- 这里提供SQL函数来管理bucket
+  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES (
+      'prompt-covers',
+      'prompt-covers',
+      false,  -- 私有bucket，通过策略控制访问
+      5242880,  -- 5MB限制
+      ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  );
 
--- ===============================
--- 1. 创建Storage Bucket
--- ===============================
+  -- 7. Storage策略配置
+  -- 上传策略：认证用户可以上传到自己的文件夹
+  CREATE POLICY "prompt_covers_upload_policy" ON storage.objects
+      FOR INSERT WITH CHECK (
+          bucket_id = 'prompt-covers' AND
+          auth.role() = 'authenticated' AND
+          (storage.foldername(name))[1] = auth.uid()::text
+      );
 
--- 创建prompt-manager bucket（如果不存在）
-INSERT INTO storage.buckets (id, name, public, avif_autodetection, file_size_limit, allowed_mime_types)
-VALUES (
-    'prompt-manager',
-    'prompt-manager', 
-    true, 
-    false,
-    52428800, -- 50MB限制
-    ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']::text[]
-)
-ON CONFLICT (id) DO NOTHING;
+  -- 查看策略：可以访问公开prompts的图片 + 自己的图片
+  CREATE POLICY "prompt_covers_select_policy" ON storage.objects
+      FOR SELECT USING (
+          bucket_id = 'prompt-covers' AND (
+              -- 自己的图片
+              (storage.foldername(name))[1] = auth.uid()::text OR
+              -- 公开prompts的图片
+              EXISTS (
+                  SELECT 1 FROM prompts
+                  WHERE prompts.cover_img = storage.objects.name
+                  AND prompts.is_public = true
+              )
+          )
+      );
 
--- ===============================
--- 2. 设置Storage权限策略
--- ===============================
+  -- 更新策略：只能更新自己的图片
+  CREATE POLICY "prompt_covers_update_policy" ON storage.objects
+      FOR UPDATE USING (
+          bucket_id = 'prompt-covers' AND
+          (storage.foldername(name))[1] = auth.uid()::text
+      );
 
--- 允许认证用户上传文件
-CREATE POLICY "Allow authenticated users to upload images" ON storage.objects
-    FOR INSERT 
-    TO authenticated
-    WITH CHECK (bucket_id = 'prompt-manager');
+  -- 删除策略：只能删除自己的图片
+  CREATE POLICY "prompt_covers_delete_policy" ON storage.objects
+      FOR DELETE USING (
+          bucket_id = 'prompt-covers' AND
+          (storage.foldername(name))[1] = auth.uid()::text
+      );
 
--- 允许认证用户查看自己上传的文件
-CREATE POLICY "Allow users to view own uploaded images" ON storage.objects
-    FOR SELECT 
-    TO authenticated
-    USING (bucket_id = 'prompt-manager' AND auth.uid()::text = owner);
+  -- 8. 实用函数：获取图片完整URL
+  CREATE OR REPLACE FUNCTION get_cover_image_url(image_path TEXT)
+  RETURNS TEXT AS $$
+  BEGIN
+      IF image_path IS NULL OR image_path = '' THEN
+          RETURN NULL;
+      END IF;
 
--- 允许所有人查看公开的图片（用于分享）
-CREATE POLICY "Allow public access to images" ON storage.objects
-    FOR SELECT 
-    TO public
-    USING (bucket_id = 'prompt-manager');
+      -- 返回Supabase Storage的完整URL
+      -- 需要替换YOUR_SUPABASE_URL为实际的Supabase项目URL
+      RETURN 'https://YOUR_SUPABASE_URL.supabase.co/storage/v1/object/public/prompt-covers/' || image_path;
+  END;
+  $$ LANGUAGE plpgsql;
 
--- 允许认证用户更新自己的文件
-CREATE POLICY "Allow users to update own images" ON storage.objects
-    FOR UPDATE 
-    TO authenticated
-    USING (bucket_id = 'prompt-manager' AND auth.uid()::text = owner)
-    WITH CHECK (bucket_id = 'prompt-manager' AND auth.uid()::text = owner);
+  -- 9. 清理函数：删除prompt时清理对应图片
+  CREATE OR REPLACE FUNCTION cleanup_prompt_cover()
+  RETURNS TRIGGER AS $$
+  BEGIN
+      -- 删除Storage中的图片文件
+      IF OLD.cover_img IS NOT NULL AND OLD.cover_img != '' THEN
+          DELETE FROM storage.objects
+          WHERE bucket_id = 'prompt-covers'
+          AND name = OLD.cover_img;
+      END IF;
+      RETURN OLD;
+  END;
+  $$ LANGUAGE plpgsql;
 
--- 允许认证用户删除自己的文件
-CREATE POLICY "Allow users to delete own images" ON storage.objects
-    FOR DELETE 
-    TO authenticated
-    USING (bucket_id = 'prompt-manager' AND auth.uid()::text = owner);
-
--- ===============================
--- 3. 验证bucket设置
--- ===============================
-
--- 检查bucket是否创建成功
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'prompt-manager') THEN
-        RAISE EXCEPTION 'prompt-manager bucket未创建成功';
-    END IF;
-    
-    RAISE NOTICE '✓ prompt-manager bucket已成功创建';
-END $$;
-
--- 显示bucket配置信息
-SELECT 
-    id,
-    name,
-    public,
-    file_size_limit,
-    allowed_mime_types
-FROM storage.buckets 
-WHERE id = 'prompt-manager';
+  -- 创建触发器，在删除prompt时自动清理图片
+  CREATE TRIGGER cleanup_prompt_cover_trigger
+      BEFORE DELETE ON prompts
+      FOR EACH ROW EXECUTE FUNCTION cleanup_prompt_cover();
 ```
 4. 左侧菜单底部，点击 `Project Settings` -> `API`
    - 在这里你会找到两个关键信息，请复制并填入vercel的环境变量中：
