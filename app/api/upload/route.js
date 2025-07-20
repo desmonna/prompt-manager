@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createUsersupabaseClient } from '../../../lib/supabase';
+import { createUserSupabaseClient } from '../../../lib/supabase';
 
 export async function POST(request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createUsersupabaseClient(userId);
+    const supabase = createUserSupabaseClient(userId);
 
     const formData = await request.formData();
     const file = formData.get('image');
@@ -25,7 +25,7 @@ export async function POST(request) {
     // 使用用户ID和时间戳生成文件路径，符合RLS策略
     const fileName = `${userId}/${Date.now()}.${fileExtension}`;
     
-    // 上传到 supabase Storage (使用prompt-covers bucket)
+    // 上传到 Supabase Storage (使用prompt-covers bucket)
     const { data, error } = await supabase.storage
       .from('prompt-covers')
       .upload(fileName, file);
