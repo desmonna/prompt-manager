@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { supabaseAnon } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export async function GET() {
   try {
-    const { data: tags, error } = await supabaseAnon
+    const { data: tags, error } = await supabaseAdmin
       .from('tags')
       .select('name');
 
@@ -27,7 +27,7 @@ export async function POST(request) {
     }
 
     // 检查标签是否已存在
-    const { data: existingTag } = await supabaseAnon
+    const { data: existingTag } = await supabaseAdmin
       .from('tags')
       .select('id, name')
       .eq('name', name.trim())
@@ -38,7 +38,7 @@ export async function POST(request) {
     }
 
     // 创建新标签
-    const { data, error } = await supabaseAnon
+    const { data, error } = await supabaseAdmin
       .from('tags')
       .insert([{ name: name.trim() }])
       .select();
