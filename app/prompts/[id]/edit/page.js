@@ -71,10 +71,26 @@ export default function EditPrompt({ params }) {
           method: 'POST',
           body: formData,
         });
+        
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status}`);
+        }
+        
         const data = await response.json();
-        setPrompt({ ...prompt, cover_img: data.url });
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        if (data.url) {
+          setPrompt({ ...prompt, cover_img: data.url });
+          console.log('Image uploaded successfully:', data.url);
+        } else {
+          throw new Error('No URL returned from upload');
+        }
       } catch (error) {
         console.error('Error uploading image:', error);
+        alert('图片上传失败: ' + error.message);
       }
     }
   };
