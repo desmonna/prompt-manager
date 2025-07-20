@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createUserSupabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export async function POST(request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createUserSupabaseClient(userId);
+    const supabase = supabaseAdmin;
 
     const formData = await request.formData();
     const file = formData.get('image');

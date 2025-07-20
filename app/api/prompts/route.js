@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server'
-import { createUserSupabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export async function GET(request) {
   const { userId } = await auth();
@@ -9,7 +9,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  const supabase = createUserSupabaseClient(userId);
+  const supabase = supabaseAdmin;
   
   // 从 URL 中获取 tag 参数
   const { searchParams } = new URL(request.url);
@@ -41,7 +41,7 @@ export async function POST(request) {
       return NextResponse.json({ error: '用户未认证' }, { status: 401 });
     }
 
-    const supabase = createUserSupabaseClient(userId);
+    const supabase = supabaseAdmin;
 
     const data = await request.json();
     
