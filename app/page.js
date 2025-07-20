@@ -48,7 +48,7 @@ export default function Home() {
               浏览提示词
             </Link>
             <Link
-              href="https://github.com/liujuntao123/prompt-manager"
+              href="https://github.com/desmonna/prompt-manager"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto rounded-lg border border-white/30 backdrop-blur-sm px-8 py-4 text-white/70 hover:text-white/90 font-medium hover:bg-white/10 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
