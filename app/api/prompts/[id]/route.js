@@ -1,11 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server'
+import { createUserSupabaseClient } from '../../../../lib/supabase';
 
 export async function GET(request, { params }) {
   const { id } = await params;
   const { userId } = await auth()
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  const supabase = createUserSupabaseClient(userId);
   
   const { data: prompt, error } = await supabase
     .from('prompts')
@@ -28,7 +33,12 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   const { id } = await params;
   const { userId } = await auth()
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  const supabase = createUserSupabaseClient(userId);
 
   const { title, content, description, is_public, tags, cover_img ,version} = await request.json();
 
@@ -71,7 +81,12 @@ export async function POST(request, { params }) {
 export async function DELETE(request, { params }) {
   const { id } = await params;
   const { userId } = await auth()
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  const supabase = createUserSupabaseClient(userId);
 
   // 检查提示词是否存在
   const { data: prompt, error: checkError } = await supabase
