@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server'
-import { createUserSupabaseClient } from '../../../../lib/supabase';
+import { supabaseAdmin } from '../../../../lib/supabase';
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -10,7 +10,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  const supabase = createUserSupabaseClient(userId);
+  const supabase = supabaseAdmin;
   
   const { data: prompt, error } = await supabase
     .from('prompts')
@@ -38,7 +38,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  const supabase = createUserSupabaseClient(userId);
+  const supabase = supabaseAdmin;
 
   const { title, content, description, is_public, tags, cover_img ,version} = await request.json();
 
@@ -86,7 +86,7 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  const supabase = createUserSupabaseClient(userId);
+  const supabase = supabaseAdmin;
 
   // 检查提示词是否存在
   const { data: prompt, error: checkError } = await supabase
