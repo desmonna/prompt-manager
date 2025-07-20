@@ -1,47 +1,56 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '../../../lib/supabase';
 
-export async function POST(request) {
+export async function GET() {
   try {
-    // 获取用户认证信息
-    const { userId } = auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const supabase = supabaseAdmin;
-
-    const formData = await request.formData();
-    const file = formData.get('image');
-    
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
-    }
-
-    // 获取文件扩展名
-    const fileExtension = file.name.split('.').pop();
-    // 使用用户ID和时间戳生成文件路径，符合RLS策略
-    const fileName = `${userId}/${Date.now()}.${fileExtension}`;
-    
-    // 上传到 Supabase Storage (使用prompt-covers bucket)
-    const { data, error } = await supabase.storage
-      .from('prompt-covers')
-      .upload(fileName, file);
+    const { data: tags, error } = await supabaseAdmin
+      .from('tags')
+      .select('name');
 
     if (error) {
       throw error;
     }
 
-    // 获取文件的公共URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('prompt-covers')
-      .getPublicUrl(fileName);
-    
-    return NextResponse.json({ url: publicUrl });
+    return NextResponse.json(tags);
   } catch (error) {
-    console.error('Error uploading file:', error);
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    console.error('Error fetching tags:', error);
+    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const { name } = await request.json();
+    
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: '标签名称不能为空' }, { status: 400 });
+    }
+
+    // 检查标签是否已存在
+    const { data: existingTag } = await supabaseAdmin
+      .from('tags')
+      .select('id, name')
+      .eq('name', name.trim())
+      .single();
+
+    if (existingTag) {
+      return NextResponse.json(existingTag);
+    }
+
+    // 创建新标签
+    const { data, error } = await supabaseAdmin
+      .from('tags')
+      .insert([{ name: name.trim() }])
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data[0]);
+  } catch (error) {
+    console.error('Error creating tag:', error);
+    return NextResponse.json({ error: '创建标签失败' }, { status: 500 });
   }
 } 
