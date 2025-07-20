@@ -1,11 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server';
+import { supabaseAnon } from '../../../../lib/supabase';
 
 export async function GET(request, { params }) {
   const { id } = await params;
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
   
-  const { data: prompt, error } = await supabase
+  const { data: prompt, error } = await supabaseAnon
     .from('prompts')
     .select('*')
     .eq('id', id)
