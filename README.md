@@ -186,6 +186,13 @@
           (storage.foldername(name))[1] = auth.uid()::text
       );
 
+-- 允许公共读取访问策略
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT 
+USING (bucket_id = 'prompt-covers');
+
+-- 设置bucket为公共访问
+UPDATE storage.buckets SET public = true WHERE id = 'prompt-covers';
+
   -- 8. 实用函数：获取图片完整URL
   CREATE OR REPLACE FUNCTION get_cover_image_url(image_path TEXT)
   RETURNS TEXT AS $$
