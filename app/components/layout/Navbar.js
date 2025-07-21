@@ -17,27 +17,6 @@ import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@c
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const hasAuthToken = document.cookie.includes('authToken=');
-      if (!hasAuthToken) {
-        setIsLoggedIn(false);
-        setUser(null);
-        return;
-      }
-      setUser('prompt大师');
-      setIsLoggedIn(true);
-    };
-    checkAuth();
-  }, []);
-
-  const handleSignOut = async () => {
-    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    window.location.href = '/';
-  };
 
   return (
     <nav className="border-b">
