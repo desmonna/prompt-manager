@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://scdn.clerk.com https://js.clerk.com https://*.clerk.com https://challenges.cloudflare.com; connect-src 'self' https://clerk.com https://*.clerk.com https://segapi.clerk.com https://api.clerk.com https://*.supabase.co https://api.stripe.com; img-src 'self' https://*.clerk.com https://img.clerk.com data: blob:; style-src 'self' 'unsafe-inline' https://scdn.clerk.com; worker-src 'self' blob:; frame-src 'self' https://*.clerk.com;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://scdn.clerk.com https://js.clerk.com https://*.clerk.com https://clerk.aiassisant.xyz https://challenges.cloudflare.com; connect-src 'self' https://clerk.com https://*.clerk.com https://segapi.clerk.com https://api.clerk.com https://accounts.aiassisant.xyz https://*.supabase.co https://api.stripe.com; img-src 'self' https://*.clerk.com https://img.clerk.com data: blob:; style-src 'self' 'unsafe-inline' https://scdn.clerk.com; worker-src 'self' blob:; frame-src 'self' https://*.clerk.com;"
         }
       ]
     }
