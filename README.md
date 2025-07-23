@@ -41,10 +41,14 @@
 - `SUPABASE_SERVICE_ROLE_KEY`：Supabase 核心密钥
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`：Clerk 公钥，用于客户端认证
 - `CLERK_SECRET_KEY`：Clerk 私钥，用于服务端认证
-- `NEXT_PUBLIC_CLERK_DOMAIN`：your-domian
 - `AUTH_SECRET`：用于 NextAuth.js 的加密密钥
 - `GITHUB_ID`：GitHub OAuth 应用的客户端 ID（可选，用于 GitHub 登录）
 - `GITHUB_SECRET`：GitHub OAuth 应用的客户端密钥（可选，用于 GitHub 登录）
+##### 三级域名需要输入以下内容
+- `NEXT_PUBLIC_CLERK_DOMAIN`：your-domian
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: https://accounts.your-domain/sign-in
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL`: https://accounts.your-domain/sign-up
+  
 
 ### supabase
 
