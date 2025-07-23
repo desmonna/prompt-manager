@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -9,10 +8,9 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Menu, Github, FolderPlus, Library, LogOut } from "lucide-react"
+import { Menu, Github, FolderPlus, Library } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 
 
 export default function Navbar() {
@@ -104,7 +102,7 @@ export default function Navbar() {
                       新建
                     </Link>
                     <Link
-                      href="https://github.com/yourusername/yourrepo"
+                      href="https://github.com/desmonna/prompt-manager"
                       target="_blank"
                       className="text-muted-foreground flex items-center gap-2"
                     >
