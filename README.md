@@ -31,14 +31,17 @@
 4. 选择`Import Git Repository`
 5. 输入项目名称，选择`GitHub`作为代码来源
 6. 设置相关环境变量（clerk部分先输入Development环境的key，获取方式和production一样）
-7. 点击`Deploy`
+7. 修改next.config.mjs和
+8. 点击`Deploy`
 
 #### 环境变量说明
 
 - `SUPABASE_URL`：Supabase 项目 URL
 - `SUPABASE_ANON_KEY`：Supabase 匿名密钥
+- `SUPABASE_SERVICE_ROLE_KEY`：Supabase 核心密钥
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`：Clerk 公钥，用于客户端认证
 - `CLERK_SECRET_KEY`：Clerk 私钥，用于服务端认证
+- `NEXT_PUBLIC_CLERK_DOMAIN`：your-domian
 - `AUTH_SECRET`：用于 NextAuth.js 的加密密钥
 - `GITHUB_ID`：GitHub OAuth 应用的客户端 ID（可选，用于 GitHub 登录）
 - `GITHUB_SECRET`：GitHub OAuth 应用的客户端密钥（可选，用于 GitHub 登录）
@@ -282,7 +285,7 @@ UPDATE storage.buckets SET public = true WHERE id = 'prompt-covers';
    - Authorization callback URL (授权回调URL):这是最最最重要的一项！ 当用户在GitHub上授权后，GitHub需要知道把用户送回到哪里。这个地址由Clerk提供。
    - 打开Clerk Dashboard，进入你的生产实例，点击左侧的 "User & Authentication" -> "Social Connections"。找到 GitHub 并点击它。
    - 在弹出的配置页面中，你会看到"Callback URL"，完整地复制这个URL，然后回到 GitHub 的页面，把它粘贴到 "Authorization callback URL" 的输入框里。
-   - 其他完全不用动，直接下拉到最下方，点击 "Register application" 按钮。
+   - Account permissions里面选择Email addresses:read-noly，Profile:Read and Write，然后直接下拉到最下方，点击 "Register application" 按钮。
    - 页面会刷新，现在你会看到你的应用的详情页。这里面包含了我们需要的第一个关键信息：Client ID。
    - 点击 "Generate a new client secret" 按钮。GitHub会要求你再次确认密码。确认后，它会生成一长串字符，这就是你的 Client Secret。
 注意：这个 Client Secret 只会显示一次！ 请立即将 Client ID 和 Client Secret 复制到一个安全的地方（比如一个临时的记事本文件），我们马上就要用到它们。
