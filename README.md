@@ -31,7 +31,7 @@
 4. 选择`Import Git Repository`
 5. 输入项目名称，选择`GitHub`作为代码来源
 6. 设置相关环境变量（clerk部分先输入Development环境的key，获取方式和production一样）
-7. 修改next.config.mjs和
+7. 修改vercel.json里面域名改为自己的
 8. 点击`Deploy`
 
 #### 环境变量说明
